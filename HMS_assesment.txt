@@ -1,0 +1,158 @@
+DROP database if exists HMS;
+create database HMS;
+use HMS;
+
+DROP table if exists doctor_master;
+
+/* *************************************************************
+						CREATING TABLES 
+   *************************************************************
+*/
+
+Create table doctor_master
+(
+	doctor_id varchar(15) primary key,
+    doctor_name varchar(15) not null,
+    dept varchar(15) not null
+);
+desc doctor_master;
+
+/* *************************************************************
+					Insert Into Doctor_master
+   *************************************************************
+*/
+
+Insert into doctor_master(doctor_id, doctor_name, dept)
+values('D0001','ram','ENT'),
+	  ('D0002','rajan','ENT'),
+      ('D0003','smita','Eye'),
+      ('D0004','bhavan','Surgery'),
+      ('D0005','sheela','Surgery'),
+      ('D0006','Nethra','Surgery');
+
+select * from doctor_master;
+
+
+DROP table if exists room_master;
+
+/* *************************************************************
+						CREATING TABLES 
+   *************************************************************
+*/
+
+create table room_master
+(
+	room_no varchar(15) primary key,
+    room_type varchar(15) not null,
+    status varchar(15) not null
+);
+desc room_master;
+
+/* *************************************************************
+					Insert Into Room_master
+   *************************************************************
+*/
+
+Insert into room_master(room_no, room_type, status)
+values('R0001','AC','occupied'),
+	  ('R0002','Suite','vacant'),
+      ('R0003','NonAC','vacant'),
+      ('R0004','NonAC','occupied'),
+      ('R0005','AC','vacant'),
+      ('R0006','AC','occupied');
+      
+select * from room_master;
+
+
+DROP table if exists patient_master;
+
+/* *************************************************************
+						CREATING TABLES 
+   *************************************************************
+*/
+
+create table patient_master
+(
+	pid varchar(15) primary key,
+    name varchar(20) not null,
+    gender varchar(10) not null,
+    age numeric(15) not null,
+    weight numeric(15) not null,
+    address varchar(50) not null,
+    phoneno varchar(10) not null,
+    disease varchar(50) not null,
+    doctor_id varchar(15) not null,
+    foreign key(doctor_id) references doctor_master(doctor_id) 
+);
+
+desc patient_master;
+
+/* *************************************************************
+					Insert Into Patient_master
+   *************************************************************
+*/
+
+Insert into patient_master(pid, name, gender, age, weight, address, phoneno, disease, doctor_id)
+values('P0001','soham','F',35,65,'chennai','9867145678','Eye infection','D0003'),
+	  ('P0002','suhas','M',40,70,'delhi','9867145678','Asthma','D0003'),
+      ('P0003','yash','F',25,60,'chennai','9867145678','pain in heart','D0005'),
+      ('P0004','varad','F',28,55,'banglore','9867145678','Asthma','D0001'),
+      ('P0005','abhi','M',42,65,'delhi','9867145678','pain in stomach','D0004');
+      
+select * from patient_master;
+
+
+DROP table if exists room_allocation;
+
+/* ***************************************************************************
+							CREATING TABLES
+   ***************************************************************************
+*/
+
+create table room_allocation
+(
+	room_no varchar(15),
+	foreign key(room_no) references room_master(room_no),
+    pid varchar(15),
+    foreign key(pid) references patient_master(pid),
+    admission_date date not null,
+    release_date date
+);
+desc room_allocation;
+
+/* *************************************************************
+			Insert Into Room Allocation 
+   *************************************************************
+*/
+
+insert into room_allocation(room_no, pid, admission_date, release_date)
+values('R001','P0001','2016-10-15','2016-10-26'),
+	  ('R002','P0002','2016-11-15','2016-11-26'),
+      ('R002','P0003','2016-12-01','2016-12-30'),
+      ('R004','P0001','2017-01-01','2017-01-30');
+
+select * from room_allocation;
+
+
+-- QUERIES
+
+-- Query #1: Display the patients who were admitted in the month of january. 
+select * from room_allocation where extract(month from admission_date)=01;
+
+-- Query #2: Display the female patient who is not suffering from asthma.
+select * from patient_master where not disease='asthma';
+
+-- Query #3: Count the number of male and female patients.
+  select gender, count(pid) from patient_master group by gender;
+
+-- Query #4: Display the patient_id,patient_name, doctor_id, doctor_name, room_no, room_type and admission_date.
+select p.pid, p.name, d.doctor_id, d.doctor_name, ro.room_no, ro.room_type, ra.admission_date
+   from patient_master as p, doctor_master as d, room_master as ro, room_allocation as ra
+   where d.doctor_id=p.doctor_id and ro.room_no=ra.room_no and p.pid=ra.pid;
+   
+-- Query #5: Display the room_no which was never allocated to any patient.
+  select room_no from room_allocation group by room_no having count(room_no)=0;
+  
+-- Query #6: Display the room_no, room_type which are allocated more than once.
+select room_no, room_type from room_master where room_no in (select room_no 
+from room_allocation group by room_no having count(room_no)>1);
